@@ -16,7 +16,7 @@
               <q-tab name="comidas" icon="food_bank" label="comidas" />
               <q-tab name="entrenamientos" icon="fitness_center" label="entrenamientos" />
               <q-tab name="perfil" icon="food_bank" label="perfil" />
-              <q-tab name="more" icon="fitness_center" label="entrenamientos" />
+              <q-tab name="more" icon="fitness_center" label="more" />
             </q-tabs>
             <!-- contenido   -->
             <q-tab-panels v-model="tab" animated>
