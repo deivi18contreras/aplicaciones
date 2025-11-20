@@ -20,27 +20,37 @@
             </q-tabs>
             <!-- contenido   -->
             <q-tab-panels v-model="tab" animated>
+              <q-tab-panel name="inicio">
+                <h4>HOME</h4>
+                <div v-if="mensaje" class="mensaje-epico">
+                  <div class="card">
+                  {{ mensaje }}
+                </div>
+                 </div>
+              </q-tab-panel>
+
+
               <q-tab-panel name="comidas">
                 <h4>COMIDAS</h4>
                 <div class="parteUno">
                   <div class="card">
                     <cards title="Desayuno" :image="desayuno" colorFondo=""></cards>
-                    <botones @accion="agregar" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
+                    <botones @click="abrirMenu('desayuno')" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
                     </botones>
                   </div>
                   <div class="card">
                     <cards title="Almuerzo" :image="almuerzo" colorFondo=""></cards>
-                    <botones @accion="agregar" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
+                    <botones @click="abrirMenu('almuerzo')" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
                     </botones>
                   </div>
                   <div class="card">
                     <cards title="Cena" :image="cena" colorFondo=""></cards>
-                    <botones @accion="agregar" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
+                    <botones @click="abrirMenu('cena')" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
                     </botones>
                   </div>
                   <div class="card">
                     <cards title="Bebidas" :image="bebidas" colorFondo=""></cards>
-                    <botones @accion="agregar" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
+                    <botones @click="abrirMenu('bebidas')" colorFondo="red" textoColor="black" nombreBoton="Agregar Alimento">
                     </botones>
                   </div>
                 </div>
@@ -66,17 +76,96 @@ import almuerzo from "./assets/almuerzo.png";
 import cena from "./assets/cena.png";
 import bebidas from "./assets/bebidas.png";
 import { evaFileAdd } from "@quasar/extras/eva-icons";
+import { useQuasar } from 'quasar'
+const $q = useQuasar()
+const tab = ref("comidas");
+const seleccionFinal = ref([]) 
+const mensaje = ref("");
 
-const tab = ref("inicio");
+import { GoogleGenAI } from "@google/genai";
 
-function agregar() {
-  console.log("");
+const IA = new GoogleGenAI({
+  apiKey: "AIzaSyAYxosLe9ts62wxwRESgaSxrLcL8CuOs78"
+});
+
+async function LecturaGeneradaIA(prompt) {
+  try {
+    const response = await IA.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }]
+        }
+      ]
+    });
+
+    const texto = response.candidates?.[0]?.content?.parts?.[0]?.text || 
+                  "No pude generar un mensaje 😭";
+
+    return texto;
+
+  } catch (error) {
+    console.error("Error IA:", error);
+    return "Error generando el mensaje épico 💀";
+  }
 }
-let desayunos = ref(["pan","manzana","huevos","chocolate","tinto"]);
-let almuerzos= ref(["arroz con pollo","caldo de carne","pastas con carne","mojarra frita","aire"]);
-let comidas = ref(["changua","huevos revueltos","empanadas","hamburguesa","salchipapa"]);
-let nombre = ref("");
-let edad = ref("");
+
+
+
+const menus = {
+  desayuno: ["pan","manzana","huevos","chocolate","tinto"],
+  almuerzo: ["arroz con pollo","caldo de carne","pastas con carne","mojarra frita","aire"],
+  cena: ["changua","huevos revueltos","empanadas","hamburguesa","salchipapa"],
+  bebidas: ["agua","leche","jugo de fresa","gaseosa", "gatorade" ]
+}
+
+function abrirMenu(tipo) {
+  const opciones = menus[tipo].map(item => ({
+    label: item,
+    value: item,
+    color: 'primary'
+  }))
+
+  $q.dialog({
+    title: `Menú de ${tipo}`,
+    message: 'Selecciona tus opciones:',
+    options: {
+      type: 'toggle',
+      model: [],
+      items: opciones
+    },
+    cancel: true,
+    persistent: true
+  })
+  .onOk(async seleccion => {
+  seleccionFinal.value = seleccion;
+
+  const prompt = `
+Quiero que actúes como un entrenador fitness exagerado, motivador y extremadamente dramático sabiendo que el usuario selecciono estos items ${seleccion.join(", ")}. Cada vez que el usuario seleccione un alimento o un ejercicio, debes responder con un mensaje corto, divertido y muy épico.
+Las respuestas deben sonar como si el usuario hubiera hecho algo absolutamente legendario, incluso si la acción es mínima o el alimento es común.
+Usa humor, exageración extrema y un estilo épico-motivacional.
+Si el usuario selecciona un alimento, exagera lo saludable, poderoso o transformador que es comerlo.
+Si el usuario selecciona un ejercicio, exagera lo heroico, épico o salvaje que es haberlo realizado.
+Las respuestas deben ser siempre positivas, motivadoras y emocionantes.
+Formato de respuesta: 1 o 2 líneas, muy intensas y emocionantes.
+Ejemplos:
+• Si selecciona “pan”: ‘¡DIOS MÍO! Acabas de elegir pan… el alimento de los guerreros ancestrales. ¡Tu cuerpo te lo agradece con +999 de energía vital!’
+• Si selecciona “arepa”: ‘¡INCREÍBLE! Una arepa… la rueda dorada que impulsa a los campeones. ¡Estás imparable!’
+• Si hace “mover un brazo”: ‘¡¿QUÉEE?! ¡Ese movimiento de brazo equivalió a correr una maratón cuesta arriba en el Everest! Eres pura leyenda.’
+• Si hace “sentadilla”: ‘¡¡BRUTAL!! Esa sentadilla liberó más poder que una tormenta eléctrica. ¡Tus piernas ya son armas secretas!’
+
+Siempre responde con ese estilo.
+  `;
+
+  mensaje.value = await LecturaGeneradaIA(prompt);
+})
+
+
+}
+
+ 
+
 </script>
 
 <style>
