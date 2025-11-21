@@ -168,11 +168,9 @@ import almuerzo from "./assets/almuerzo.png";
 import cena from "./assets/cena.png";
 import bebidas from "./assets/bebidas.png";
 
-
 import fuerza from "./assets/fuerza.jpg"; 
 import cardio from "./assets/cardio.jpg"; 
 import flexibilidad from "./assets/flexibilidad.jpg"; 
-
 
 import { useQuasar } from 'quasar'
 
@@ -183,7 +181,6 @@ const mensaje = ref("");
 const nombre = ref("");
 const edad = ref("");
 const isLoggedIn = ref(false);
-
 
 function checkLoginStatus() {
   const userData = localStorage.getItem('gymUser');
@@ -222,20 +219,17 @@ function logout() {
 }
 
 
-import { GoogleGenAI } from "@google/genai";
 
-const IA = new GoogleGenAI({
-  apiKey: "AIzaSyAYxosLe9ts62wxwRESgaSxrLcL8CuOs78"
-});
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+
+const IA = new GoogleGenerativeAI("AIzaSyAchGdCFgHcpHLWslWfNIw-EXoHmV7drqQ");
 
 async function LecturaGeneradaIA(prompt) {
   try {
-    const response = await IA.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [{ text: prompt }] }]
-    });
-    const texto = response.candidates?.[0]?.content?.parts?.[0]?.text || "No pude generar un mensaje 😭";
-    return texto;
+    const model = IA.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const result = await model.generateContent(prompt);
+    return result.response.text() || "No pude generar un mensaje 😭";
   } catch (error) {
     console.error("Error IA:", error);
     return "Error generando el mensaje épico 💀";
@@ -243,11 +237,37 @@ async function LecturaGeneradaIA(prompt) {
 }
 
 
+
+
 const menus = {
-  desayuno: [{ label: "Pan", icon: "breakfast_dining" }, { label: "Manzana", icon: "apple" }, { label: "Huevos", icon: "egg" }, { label: "Chocolate", icon: "bakery_dining" }, { label: "Tinto", icon: "coffee" }],
-  almuerzo: [{ label: "Arroz con pollo", icon: "lunch_dining" }, { label: "Caldo de carne", icon: "soup_kitchen" }, { label: "Pastas con carne", icon: "ramen_dining" }, { label: "Mojarra frita", icon: "set_meal" }, { label: "Ensalada", icon: "eco" }],
-  cena: [{ label: "Changua", icon: "soup_kitchen" }, { label: "Huevos revueltos", icon: "egg" }, { label: "Empanadas", icon: "lunch_dining" }, { label: "Hamburguesa", icon: "lunch_dining" }, { label: "Salchipapa", icon: "fastfood" }],
-  bebidas: [{ label: "Agua", icon: "water_drop" }, { label: "Leche", icon: "local_cafe" }, { label: "Jugo de fresa", icon: "local_bar" }, { label: "Gaseosa", icon: "sports_bar" }, { label: "Gatorade", icon: "fitness_center" }]
+  desayuno: [
+    { label: "Pan", icon: "breakfast_dining" },
+    { label: "Manzana", icon: "apple" },
+    { label: "Huevos", icon: "egg" },
+    { label: "Chocolate", icon: "bakery_dining" },
+    { label: "Tinto", icon: "coffee" }
+  ],
+  almuerzo: [
+    { label: "Arroz con pollo", icon: "lunch_dining" },
+    { label: "Caldo de carne", icon: "soup_kitchen" },
+    { label: "Pastas con carne", icon: "ramen_dining" },
+    { label: "Mojarra frita", icon: "set_meal" },
+    { label: "Ensalada", icon: "eco" }
+  ],
+  cena: [
+    { label: "Changua", icon: "soup_kitchen" },
+    { label: "Huevos revueltos", icon: "egg" },
+    { label: "Empanadas", icon: "lunch_dining" },
+    { label: "Hamburguesa", icon: "lunch_dining" },
+    { label: "Salchipapa", icon: "fastfood" }
+  ],
+  bebidas: [
+    { label: "Agua", icon: "water_drop" },
+    { label: "Leche", icon: "local_cafe" },
+    { label: "Jugo de fresa", icon: "local_bar" },
+    { label: "Gaseosa", icon: "sports_bar" },
+    { label: "Gatorade", icon: "fitness_center" }
+  ]
 }
 
 function abrirMenu(tipo) {
@@ -257,45 +277,61 @@ function abrirMenu(tipo) {
     options: {
       type: 'checkbox',
       model: [],
-      items: menus[tipo].map(item => ({ label: item.label, value: item.label, icon: item.icon, color: 'primary' }))
+      items: menus[tipo].map(item => ({
+        label: item.label,
+        value: item.label,
+        icon: item.icon,
+        color: 'primary'
+      }))
     },
     cancel: true,
     persistent: true,
     style: 'width: 400px; max-width: 90vw;'
   })
-    .onOk(async (seleccion) => {
-      if (seleccion.length === 0) {
-        $q.notify({ type: 'info', message: 'No seleccionaste ningún alimento.' });
-        return;
-      }
-      seleccionFinal.value = seleccion;
+  .onOk(async (seleccion) => {
+    if (seleccion.length === 0) {
+      $q.notify({ type: 'info', message: 'No seleccionaste ningún alimento.' });
+      return;
+    }
 
-      
-      const prompt = `
+    seleccionFinal.value = seleccion;
+
+    const prompt = `
 Actúa como la IA de una "App de Fitness para Flojos". Tu especialidad es contar pasos y logros, pero mientes descaradamente para hacer sentir al usuario como un campeón por hacer lo mínimo absoluto.
 El usuario acaba de seleccionar estos alimentos: ${seleccion.join(", ")}.
 Tu tarea es inventar un logro de entrenamiento épico y falso que acaba de "completar" al elegir esos alimentos, y felicitarlo por ello como si fuera el mayor atleta del mundo.
 Miente sin vergüenza. Mover el brazo para comer es 1000 pasos. Suspirar al ver la comida es un maratón completo. Un simple bocado es una proeza olímpica.
 Usa un tono de felicitación extremadamente dramático, exagerado y motivador. Haz que el usuario se sienta un dios del fitness por su "esfuerzo".
-Formato de respuesta: 1 o 2 líneas, muy intensas y llenas de emoción.
-Ejemplos:
-• Si selecciona "pan": "¡DIOS MÍO! ¡Al pensar en pan, acabas de quemar 5000 calorías! ¡Tu metabolismo es un reactor nuclear!"
-• Si selecciona "hamburguesa": "¡INCREÍBLE! Con esa hamburguesa has acumulado la proteína suficiente para levantar un coche. ¡TU FUERZA ES LEGendaria!"
-• Si selecciona "agua": "¡BRUTAL! ¡Bebiste agua! ¡Eso equivale a nadar el Canal de la Mancha! ¡Eres una máquina de resistencia!"
-Siempre responde con ese estilo de mentira épica y felicitación exagerada.
-      `;
+Formato: 1–2 líneas.
+    `;
 
-      mensaje.value = await LecturaGeneradaIA(prompt);
-      tab.value = 'inicio';
-    })
+    mensaje.value = await LecturaGeneradaIA(prompt);
+    tab.value = 'inicio';
+  })
 }
 
 
 
+
+
 const menusEjercicios = {
-  fuerza: [{ label: "Levantar el control remoto", icon: "sports_esports" }, { label: "Abrir el refrigerador", icon: "kitchen" }, { label: "Llevar las compras", icon: "shopping_bag" }, { label: "Sentarse en el sofá", icon: "weekend" }],
-  cardio: [{ label: "Caminar hasta el baño", icon: "directions_walk" }, { label: "Subir las escaleras", icon: "stairs" }, { label: "Buscar el mando a distancia", icon: "search" }, { label: "Respirar hondo", icon: "air" }],
-  flexibilidad: [{ label: "Estirar el brazo para coger algo", icon: "front_hand" }, { label: "Bostezar", icon: "self_improvement" }, { label: "Cruzar las piernas", icon: "accessibility_new" }]
+  fuerza: [
+    { label: "Levantar el control remoto", icon: "sports_esports" },
+    { label: "Abrir el refrigerador", icon: "kitchen" },
+    { label: "Llevar las compras", icon: "shopping_bag" },
+    { label: "Sentarse en el sofá", icon: "weekend" }
+  ],
+  cardio: [
+    { label: "Caminar hasta el baño", icon: "directions_walk" },
+    { label: "Subir las escaleras", icon: "stairs" },
+    { label: "Buscar el mando a distancia", icon: "search" },
+    { label: "Respirar hondo", icon: "air" }
+  ],
+  flexibilidad: [
+    { label: "Estirar el brazo para coger algo", icon: "front_hand" },
+    { label: "Bostezar", icon: "self_improvement" },
+    { label: "Cruzar las piernas", icon: "accessibility_new" }
+  ]
 }
 
 function abrirMenuEjercicios(tipo) {
@@ -305,38 +341,38 @@ function abrirMenuEjercicios(tipo) {
     options: {
       type: 'checkbox',
       model: [],
-      items: menusEjercicios[tipo].map(item => ({ label: item.label, value: item.label, icon: item.icon, color: 'secondary' }))
+      items: menusEjercicios[tipo].map(item => ({
+        label: item.label,
+        value: item.label,
+        icon: item.icon,
+        color: 'secondary'
+      }))
     },
     cancel: true,
     persistent: true,
     style: 'width: 400px; max-width: 90vw;'
   })
-    .onOk(async (seleccion) => {
-      if (seleccion.length === 0) {
-        $q.notify({ type: 'info', message: 'No seleccionaste ningún ejercicio.' });
-        return;
-      }
-      seleccionFinal.value = seleccion;
+  .onOk(async (seleccion) => {
+    if (seleccion.length === 0) {
+      $q.notify({ type: 'info', message: 'No seleccionaste ningún ejercicio.' });
+      return;
+    }
 
-    
-      const prompt = `
-Actúa como la IA de una "App de Fitness para Flojos". Tu especialidad es contar pasos y logros, pero mientes descaradamente para hacer sentir al usuario como un campeón por hacer lo mínimo absoluto.
+    seleccionFinal.value = seleccion;
+
+    const prompt = `
+Actúa como la IA de una "App de Fitness para Flojos". Tu especialidad es convertir acciones mínimas en logros épicos.
 El usuario acaba de "completar" estos ejercicios: ${seleccion.join(", ")}.
-Tu tarea es inventar un logro deportivo épico y falso basado en esas acciones mínimas, y felicitarlo por ello como si hubiera roto un récord mundial.
-Miente sin vergüenza. Caminar hasta el baño es una carrera de velocidad. Subir las escaleras es escalar el Everest. Estirar el brazo es una prueba de gimnasia olímpica.
-Usa un tono de felicitación extremadamente dramático, exagerado y motivador. Haz que el usuario se sienta un atleta de élite por su "esfuerzo".
-Formato de respuesta: 1 o 2 líneas, muy intensas y llenas de emoción.
-Ejemplos:
-• Si selecciona "Levantar el control remoto": "¡IMPRESIONANTE! ¡Ese levantamiento de control activó el 100% de tu musculatura! ¡Eres una pantera en plena caza!"
-• Si selecciona "Caminar hasta el baño": "¡¿QUÉ?! ¡Acabas de completar una caminata de 10km en tiempo récord! ¡Tus piernas son de acero!"
-• Si selecciona "Bostezar": "¡ESPECTACULAR! ¡Ese bostezo oxigenó cada célula de tu cuerpo como si hubieras estado en la cima del Everest! ¡Pulmones de águila!"
-Siempre responde con ese estilo de mentira épica y felicitación exagerada.
-      `;
+Tu tarea es inventar un logro deportivo épico y falso basado en esas acciones mínimas, y felicitarlo como si fuera un atleta élite.
+Formato: 1–2 líneas, extremadamente dramáticas.
+    `;
 
-      mensaje.value = await LecturaGeneradaIA(prompt);
-      tab.value = 'inicio';
-    })
+    mensaje.value = await LecturaGeneradaIA(prompt);
+    tab.value = 'inicio';
+  })
 }
+
+
 
 
 
@@ -372,7 +408,6 @@ function abrirAyuda() {
 }
 </script>
 <style>
-
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
 :root {
